@@ -1,72 +1,16 @@
-Decklin's git-wiki
+Lianj's git-wiki
 ==================
 
-Everyone needs a fork of git-wiki; here's mine. I have dispensed with
-a few things in an attempt to make it even more minimal:
-
-  * It doesn't require Rack. (But see below if you still want it.)
-    git-wiki.rb reads like a naive Sinatra script and can be run from
-    the command line.
-
-  * It doesn't use a separate repository to hold the wiki; you clone
-    git-wiki and then store your pages in that repo! From there,
-    changes to the code can be merged from upstream or cherry-picked
-    back. (You don't have to do this either; it's just the default.)
+Everyone needs a fork of git-wiki; so here's mine too.
 
 I've changed a few matters of taste, as well:
 
-  * Page URLs are under /pages/. Instead redirecting to a "home page",
-    / magically shows the contents of the page "index" (this name is
-    configurable).
+  * (add me)
 
-  * Wiki links use [[Brackets, Like This!]], and generate a link to
-    (e.g.) "brackets-like-this". You *can* create a page with
-    characters other than [a-z0-9-], but you won't be able to link to
-    it as easily.
+Install
+-------
 
-  * The extension for Markdown files is, by default, ".text".
-
-  * There's a basic stylesheet included. The views themselves are more
-    spartan, but since they are a part of your wiki's repository, you
-    are encouraged to edit them.
-
-And finally, I added a couple features and bug fixes:
-
-  * You can enter a commit message when editing a page. If you don't,
-    the default message only denotes that the commit was made from the
-    web interface.
-
-  * You don't have to use the branch 'master'; git-wiki always reads and
-    commits to the current branch. (You may prefer to keep all your real
-    pages in a branch, and have master just be a tracking branch.)
-
-  * Page histories are viewable under /page/foo/revisions/.
-
-Git-wiki was designed and written by Simon Rozet. He did the hard work, I
-just fiddled with the chrome a bit. The original README contains a wealth
-of additional information.
-
-Installation and Use
---------------------
-
-This git-wiki requires Sinatra, Grit, Haml, and RDiscount, all available
-on RubyGems. Here's how to create a new wiki and run it:
-
-    git clone git-wiki my-wiki
-    cd my-wiki
-    ./git-wiki.rb # and point browser to http://localhost:4567/
-
-You can still run git-wiki with Rack if you want; create a trivial
-config.ru (`require 'git-wiki'; run Sinatra::Application`) and then
-run rackup.
-
-Configuration
--------------
-
-At the end of git-wiki.rb is a `configure` block (which applies to all
-environments). Edit it, or copy it to your rackup script and override
-the defaults. You can use this to set different wiki repositories for
-development/testing/production if you want.
+This git-wiki requires Rack, Grit, Haml, and RDiscount.
 
 Caveats
 -------
@@ -89,6 +33,7 @@ License
 
     Copyright (C) 2008 Simon Rozet <simon@rozet.name>
     Copyright (C) 2009 Decklin Foster <decklin@red-bean.com>
+    Copyright (C) 2010 Julian Langschaedel <meta.rb@gmail.com>
 
                DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
                        Version 2, December 2004
