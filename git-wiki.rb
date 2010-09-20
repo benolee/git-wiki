@@ -87,13 +87,13 @@ module GitWiki
         @pages = Page.find_all
         render_html 'list.haml'
 
-      when /\/pages\/(.+)\/revisions\/?/
-        @page = Page.find_or_create(name = $1)
-        render_html 'log.haml'
-
       when /\/pages\/(.+)\/revisions\/(.+)/
         @page = Page.find_or_create(name = $1, rev = $2)
         render_html 'show.haml'
+
+      when /\/pages\/(.+)\/revisions\/?/
+        @page = Page.find_or_create(name = $1)
+        render_html 'log.haml'
 
       when /\/pages\/(.+)\/edit/
         @page = Page.find_or_create(name = $1)
