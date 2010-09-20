@@ -30,7 +30,7 @@ class Page
 
   def self.find_or_create(name, rev=nil)
     path = name + GitWiki.extension
-    commit = GitWiki.repository.commit(rev || GitWiki.repository.head.commit)
+    commit = GitWiki.repository.commit(rev || GitWiki.repository.head.commit.to_s)
     blob = commit.tree/path
     new(blob || Grit::Blob.create(GitWiki.repository, :name => path))
   end
@@ -153,4 +153,4 @@ app = Rack::Builder.new{
   use GitWiki::App
   run lambda{|env| [404, {}, ['not found']] }
 }
-Rack::Handler::Thin.run(app, :Port => 4000)
+Rack::Handler::Thin.run(app, :Port => 8085)
