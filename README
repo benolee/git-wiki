@@ -5,28 +5,18 @@ Everyone needs a fork of git-wiki; so here's mine too.
 
 I've changed a few matters of taste, as well:
 
-  * (add me)
+  * no sinatra
+  * no grit
+  * works on bare repos
 
 Install
 -------
 
-This git-wiki requires Rack, Grit, Haml, and RDiscount.
+This git-wiki requires Git, Rack, Haml, and RDiscount.
 
-Caveats
--------
+    % cd git-wiki
+    % ruby git-wiki.rb some/wiki.git <listen-port>
 
-Because we use Grit by modifying the workdir and then calling `git
-add`, git-wiki must be run with a non-bare wiki repo. If you want to
-clone this repo and then push to it, you should read the [Git FAQ
-entry][faq] about the perils of pushing to a repo with a checked-out
-workdir.
-
-In practice, you will hopefully never edit the workdir of the "live"
-repo directly, so ensuring that receive.denyNonFastForwards is turned
-on and adding a post-update hook to reset the index is a reasonable
-(if not very clean) work-around.
-
-[faq]: http://git.or.cz/gitwiki/GitFaq#push-is-reverse-of-fetch
 
 License
 -------

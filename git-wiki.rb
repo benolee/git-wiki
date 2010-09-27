@@ -7,32 +7,49 @@ require 'lib/tilt'
 
 module GitWiki
   class << self
-    attr_accessor :wiki_path, :root_page, :extension, :link_pattern
-    attr_reader :wiki_name, :repository
-    def wiki_path=(path)
-      @wiki_name, @repository = File.basename(path), Grit::Repo.new(path)
-    end
-
+    attr_accessor :root_page, :extension, :link_pattern
+    attr_accessor :git_dir, :net_port, :wiki_name
   end
 end
 
-GitWiki.wiki_path = Dir.pwd + '/uphvpn'
+raise ArgumentError unless File.directory?(ARGV[0])
+GitWiki.git_dir  = ARGV[0]
+GitWiki.net_port = ARGV[1] || 8085
 GitWiki.root_page = 'index'
 GitWiki.extension = '.text'
 GitWiki.link_pattern = /\[\[(.*?)\]\]/
 
+GitWiki.wiki_name = File.basename GitWiki.git_dir
+GitWiki.wiki_name == '.git' && \
+  GitWiki.wiki_name = File.basename(File.dirname(GitWiki.git_dir))
+
 class Page
   def self.find_all
-    GitWiki.repository.tree.contents.select{|blob|
-      blob.name =~ /#{GitWiki.extension}$/
-    }.map{|blob| new(blob) }
+    Dir.chdir(GitWiki.git_dir) do
+      head = `cat refs/heads/master`.chomp
+      tree = `git cat-file -p #{head} |head -c 45|cut -d' ' -f2`.chomp
+      `git cat-file -p #{tree}`.split("\n")
+        .map{|i|i.split(' ')}.select{|i| i.last =~ /#{GitWiki.extension}$/ }
+        .map{|blob| new(blob[3], blob[2], tree) }
+    end
   end
 
   def self.find_or_create(name, rev=nil)
-    path = name + GitWiki.extension
-    commit = GitWiki.repository.commit(rev || GitWiki.repository.head.commit.to_s)
-    blob = commit.tree/path
-    new(blob || Grit::Blob.create(GitWiki.repository, :name => path))
+    filename = name + GitWiki.extension
+    Dir.chdir(GitWiki.git_dir) do
+      rev = rev || `cat refs/heads/master`.chomp
+      tree = `git cat-file -p $(git cat-file -p '#{rev.tr("'",'"')}' |head -c 45|cut -d' ' -f2)`.split("\n").map{|i|i.split(' ')}
+
+      if blob = tree.select{|i| i.last == filename }.first
+        new(filename, blob[2], tree)
+      else
+        new(filename, nil, tree)
+      end
+    end
+  end
+
+  def content
+    Dir.chdir(GitWiki.git_dir){ `git cat-file blob #{@blob}` }
   end
 
   def self.wikify(content)
@@ -44,29 +61,40 @@ class Page
     "<a class='page #{page.css_class}' href='#{page.url}'>#{text}</a>"
   end
 
-  def initialize(blob)
-    @blob = blob
+  def initialize(name,blob,tree)
+    @name,@blob,@tree = name,blob,tree
   end
 
-  def to_s; @blob.name.sub(/#{GitWiki.extension}$/, ''); end
+  def to_s; @name.sub(/#{GitWiki.extension}$/, ''); end
   def url; to_s == GitWiki.root_page ? '/' : "/pages/#{to_s}"; end
   def edit_url; "/pages/#{to_s}/edit"; end
   def log_url; "/pages/#{to_s}/revisions/"; end
-  def css_class; @blob.id ? 'existing' : 'new'; end
-  def content; @blob.data; end
+  def css_class; @blob ? 'existing' : 'new'; end
   def to_html; Page.wikify(RDiscount.new(content).to_html); end
 
   def log
-    head = GitWiki.repository.head.name
-    GitWiki.repository.log(head, @blob.name).map(&:to_hash)
+    #head = GitWiki.repository.head.name
+    #GitWiki.repository.log(head, @blob.name).map(&:to_hash)
   end
 
   def save!(data, msg)
     msg = "web commit: #{self}" if msg.to_s.empty?
-    Dir.chdir(GitWiki.repository.working_dir) do
-      File.open(@blob.name, 'w') {|f| f.puts(data.gsub("\r\n", "\n")) }
-      GitWiki.repository.add(@blob.name)
-      GitWiki.repository.commit_index(msg)
+    Dir.chdir(GitWiki.git_dir) do
+      path = @name
+
+      File.open(path, 'w') {|f| f.puts(data.gsub("\r\n", "\n")) }
+
+      head = `cat refs/heads/master`.chomp
+      tree = `git cat-file -p #{head} |head -c 45|cut -d' ' -f2`.chomp
+      blob = `git hash-object -w #{path}`.chomp
+
+      `git read-tree #{head}`
+      `git update-index --add --cacheinfo 100644 #{blob} #{path}`
+      tree = `git write-tree`.chomp
+
+      pcommit = "-p #{head}"
+      commit_sha = `echo "update #{@name}" | git commit-tree #{tree} #{pcommit}`.chomp
+      `git update-ref refs/heads/master #{commit_sha}`
     end
   end
 end
@@ -141,7 +169,6 @@ module GitWiki
     def render_layout(template_path, layout=true)
       Tilt.new('views/layout.haml').render(self){ render_view(template_path) }
     end
-
   end
 end
 
@@ -153,4 +180,4 @@ app = Rack::Builder.new{
   use GitWiki::App
   run lambda{|env| [404, {}, ['not found']] }
 }
-Rack::Handler::Thin.run(app, :Port => 8085)
+Rack::Handler::Thin.run(app, :Port => GitWiki.net_port)
