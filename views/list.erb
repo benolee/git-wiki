@@ -1,0 +1,7 @@
+<ul id="list">
+<% @pages.each do |page| %>
+  <li>
+    <a class="page existing" href="<%= page.url %>"><%= page.to_s %></a>
+  </li>
+<% end %>
+</ul>

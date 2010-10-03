@@ -138,7 +138,7 @@ module GitWiki
 
       when '/pages/'
         @pages = Page.find_all
-        render_html 'list.haml'
+        render_html 'list.erb'
 
       when /\/pages\/(.+)\/revisions\/(.+)/
         @page = Page.find_or_create(name = $1, rev = $2)
