@@ -73,8 +73,21 @@ class Page
   def to_html; Page.wikify(RDiscount.new(content).to_html); end
 
   def log
-    #head = GitWiki.repository.head.name
-    #GitWiki.repository.log(head, @blob.name).map(&:to_hash)
+    Dir.chdir(GitWiki.git_dir) do
+      filename = @name
+      head = `cat refs/heads/master`.chomp
+
+      `git log --stat #{head} -- #{filename}`
+        .scan(/commit (.+)\nAuthor: (.+)\nDate: (.+)\n\n(.+)\n\n(.+)\n(.+)\n\n/)
+        .map{|i|
+          {
+            'id' => i[0], 'author' => i[1],
+            'committed_date' => i[2].strip,
+            'message' => i[3], 'files_summary' => i[-1],
+            #'files' => i[4..-2],
+          }
+        }
+    end
   end
 
   def save!(data, msg)
