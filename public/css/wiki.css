@@ -26,7 +26,16 @@ body {
 }
 dt {
   font-weight: bold;
+  background: #ecedf8;
+  padding: 0.3em;
+  padding-left: 0.5em;
+  margin-bottom: 0.3em;
 }
+dd {
+  margin-left:0px;
+  margin-bottom: 1.0em;
+}
+
 a:link {
   color: #0a0ac2;
 }

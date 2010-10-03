@@ -84,7 +84,7 @@ class Page
             'id' => i[0], 'author' => i[1],
             'committed_date' => i[2].strip,
             'message' => i[3].strip, 'files_summary' => i[-1],
-            #'files' => i[4..-2],
+            'files' => i[4..-2],
           }
         }
     end
@@ -118,10 +118,13 @@ def reltime(time, other=Time.now)
   d, s = s.divmod(60*60*24)
   h, s = s.divmod(60*60)
   m, s = s.divmod(60)
-  return "%dd" % d  if d > 0
-  return "%dh" % h  if h > 0
-  return "%dm" % m  if m > 0
-  return "%ds" % s
+  return "%d days" % d  if d > 1
+  return "%d day" % d  if d > 0
+  return "%d hours" % h  if h > 1
+  return "%d hour" % h  if h > 0
+  return "%d mins" % m  if m > 1
+  return "%d min" % m  if m > 0
+  return "%d secs" % s
 end
 
 module GitWiki

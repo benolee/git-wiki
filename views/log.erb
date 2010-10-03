@@ -1,6 +1,18 @@
 <dl>
 <% @page.log.each do |commit| %>
-  <dt><%= reltime Time.parse(commit['committed_date']) %></dt>
-  <dd><a href="<%= commit['id'] %>"><%= commit['message'] %></a></dd>
+  <dt>
+    <%= reltime Time.parse(commit['committed_date']) %> ago |
+    <strong>commit:</strong> [<a href="<%= commit['id'] %>"><%= commit['id'][0..8] %></a>]
+  </dt>
+  <dd>
+    <strong>Why:</strong> <%= commit['message'] %><br />
+    <strong>Author:</strong> <%= commit['author'] %><br />
+    <%= commit['files_summary'] %><br />
+    <!--<ul>
+    <% commit['files'].map{ |i| %>
+      <li><%= i.inspect %></li>
+    <% } %>
+    </ul>-->
+  </dd>
 <% end %>
 </dl>
