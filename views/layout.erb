@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <title><%= @page || GitWiki::wiki_name %></title>
+  <link href='/css/wiki.css' rel='stylesheet' type='text/css' />
+</head>
+<body>
+  <h1 id='title'>
+    <a class='home' href='/'><%= GitWiki.wiki_name %></a>
+  <% if @page && @page.url != '/' %>
+    <a href='<%= @page.url %>'><%= @page.to_s %></a>
+  <% end %>
+  </h1>
+
+  <ul id='actions'>
+  <% if @page %>
+    <li><a class='edit' href='<%= @page.edit_url %>'>edit</a></li>
+    <li><a class='log' href='<%= @page.log_url %>'>log</a></li>
+  <% end %>
+    <li><a class='list' href='/pages/'>all</a></li>
+  </ul>
+</html>
+</head>
+
+<div id='content'>
+<%= yield %>
+</div>

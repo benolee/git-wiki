@@ -1,0 +1,9 @@
+<form action='<%= @page.edit_url %>' method='POST'>
+  <p>
+    <textarea cols='80' name='content' rows='25'><%= @page.content %></textarea>
+  </p>
+  <p>
+    <input name='msg' size='65' type='text' />
+    <input type='submit' value='Commit' />
+  </p>
+</form>

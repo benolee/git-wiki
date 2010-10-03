@@ -134,7 +134,7 @@ module GitWiki
       case env['PATH_INFO']
       when '/'
         @page = Page.find_or_create(GitWiki.root_page)
-        render_html 'show.haml'
+        render_html 'show.erb'
 
       when '/pages/'
         @pages = Page.find_all
@@ -142,7 +142,7 @@ module GitWiki
 
       when /\/pages\/(.+)\/revisions\/(.+)/
         @page = Page.find_or_create(name = $1, rev = $2)
-        render_html 'show.haml'
+        render_html 'show.erb'
 
       when /\/pages\/(.+)\/revisions\/?/
         @page = Page.find_or_create(name = $1)
@@ -154,7 +154,7 @@ module GitWiki
 
       when /\/pages\/(.+)\/?/
         @page = Page.find_or_create(name = $1)
-        render_html 'show.haml'
+        render_html 'show.erb'
 
       else
 
@@ -165,7 +165,7 @@ module GitWiki
     def page_edit(env, page)
       case env['REQUEST_METHOD']
       when 'GET'
-        render_html 'edit.haml'
+        render_html 'edit.erb'
 
       when 'POST'
         params = parse_post_params(env)
@@ -192,7 +192,7 @@ module GitWiki
     end
 
     def render_layout(template_path, layout=true)
-      Tilt.new('views/layout.haml').render(self){ render_view(template_path) }
+      Tilt.new('views/layout.erb').render(self){ render_view(template_path) }
     end
   end
 end
