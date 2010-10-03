@@ -5,6 +5,7 @@
   <link href='/css/wiki.css' rel='stylesheet' type='text/css' />
 </head>
 <body>
+<div id='head'>
   <h1 id='title'>
     <a class='home' href='/'><%= GitWiki.wiki_name %></a>
   <% if @page && @page.url != '/' %>
@@ -19,9 +20,11 @@
   <% end %>
     <li><a class='list' href='/pages/'>all</a></li>
   </ul>
-</html>
-</head>
+</div>
 
 <div id='content'>
 <%= yield %>
 </div>
+
+</html>
+</head>
