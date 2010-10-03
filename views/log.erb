@@ -1,0 +1,6 @@
+<dl>
+<% @page.log.each do |commit| %>
+  <dt><%= reltime Time.parse(commit['committed_date']) %></dt>
+  <dd><a href="<%= commit['id'] %>"><%= commit['message'] %></a></dd>
+<% end %>
+</dl>

@@ -83,7 +83,7 @@ class Page
           {
             'id' => i[0], 'author' => i[1],
             'committed_date' => i[2].strip,
-            'message' => i[3], 'files_summary' => i[-1],
+            'message' => i[3].strip, 'files_summary' => i[-1],
             #'files' => i[4..-2],
           }
         }
@@ -112,6 +112,18 @@ class Page
   end
 end
 
+require 'time'
+def reltime(time, other=Time.now)
+  s = (other - time)
+  d, s = s.divmod(60*60*24)
+  h, s = s.divmod(60*60)
+  m, s = s.divmod(60)
+  return "%dd" % d  if d > 0
+  return "%dh" % h  if h > 0
+  return "%dm" % m  if m > 0
+  return "%ds" % s
+end
+
 module GitWiki
   class App
     def initialize(app)
@@ -134,7 +146,7 @@ module GitWiki
 
       when /\/pages\/(.+)\/revisions\/?/
         @page = Page.find_or_create(name = $1)
-        render_html 'log.haml'
+        render_html 'log.erb'
 
       when /\/pages\/(.+)\/edit/
         @page = Page.find_or_create(name = $1)
