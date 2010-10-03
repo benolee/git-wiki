@@ -7,12 +7,13 @@ I've changed a few matters of taste, as well:
 
   * no sinatra
   * no grit
+  * no haml
   * works on bare repos
 
 Install
 -------
 
-This git-wiki requires Git, Rack, Haml, and RDiscount.
+This git-wiki requires Git, Rack and RDiscount.
 
     % cd git-wiki
     % ruby git-wiki.rb some/wiki.git <listen-port>
