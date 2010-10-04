@@ -5,6 +5,9 @@ require 'rdiscount'
 require 'cgi'
 require 'lib/tilt'
 
+Encoding.default_internal = 'UTF-8'
+Encoding.default_external = 'UTF-8'
+
 module GitWiki
   class << self
     attr_accessor :root_page, :extension, :link_pattern
@@ -12,8 +15,55 @@ module GitWiki
   end
 end
 
+
+raise ArgumentError if ARGV.size < 1
+
+#
+# git_dir bootstrap for a fresh wiki db (huge'n ugly)
+#
+git_dir = ARGV[0]
+if not File.directory?(git_dir)
+  puts "\n    GitWiki Error: find git-database!"
+  puts "\n       '#{File.expand_path git_dir}' does NOT exist yet!"
+  puts "\n       Want to create/prepare a git-wiki there?  (y/n)\n\n\n"
+
+  # answer via stdin..
+  if STDIN.getc.downcase == 'y'
+    puts "  > making directory.."
+    Dir.mkdir(git_dir)
+    dir = "--git-dir='#{git_dir}'"
+
+    puts "  > init repo.."
+    `git #{dir}  init --bare`
+    `rm #{git_dir}/hooks/*.sample` # purge hook samples
+
+    puts "  > creates .gitignore blob.."
+    # creates .gitignore blob
+    blob = `echo "# git-ignore" | git #{dir} hash-object -w --stdin`.chomp
+
+    puts "  > adds blob to the fresh tree.."
+    `git #{dir} update-index --add --cacheinfo 100644 #{blob} .gitignore`
+
+    puts "  > writes the tree object.."
+    tree = `git #{dir} write-tree`.chomp
+
+    puts "  > writes our first commit"
+    env = 'GIT_AUTHOR_NAME=rb GIT_AUTHOR_EMAIL=meta.rb@gmail.com '
+    env += 'GIT_COMMITTER_NAME=rb GIT_COMMITTER_EMAIL=meta.rb@gmail.com '
+    commit_sha = `echo "new git-wiki repository" | #{env} git #{dir} commit-tree #{tree}`.chomp
+    `echo #{commit_sha} > #{git_dir}/refs/heads/master`
+
+    puts "  > DONE. new git-wiki 'database' is ready."
+    puts "  > git_dir='#{File.expand_path git_dir}'"
+    #puts "  >       the wiki's HEAD is at #{File.read(git_dir + '/refs/heads/master')}\n\n"
+    print "\n\n" + `git #{dir} log --stat`.chomp
+  end
+end
+
+
 raise ArgumentError unless File.directory?(ARGV[0])
-GitWiki.git_dir  = ARGV[0]
+
+GitWiki.git_dir  = git_dir
 GitWiki.net_port = ARGV[1] || 8085
 GitWiki.root_page = 'index'
 GitWiki.extension = '.text'
@@ -22,6 +72,7 @@ GitWiki.link_pattern = /\[\[(.*?)\]\]/
 GitWiki.wiki_name = File.basename GitWiki.git_dir
 GitWiki.wiki_name == '.git' && \
   GitWiki.wiki_name = File.basename(File.dirname(GitWiki.git_dir))
+
 
 class Page
   def self.find_all
@@ -90,25 +141,44 @@ class Page
     end
   end
 
+  def stage_tempfile_commit(data, msg, &block)
+    t_blob, t_msg = *['blob','commit-msg'].map{|i| Tempfile.new(i+'-') }
+    t_blob.write data.gsub("\r\n", "\n")
+    t_msg.write msg.gsub("\r\n", "\n")
+    [t_blob, t_msg].map(&:flush)
+    res = Dir.chdir(GitWiki.git_dir){
+      yield(t_blob, t_msg) if block_given?
+    }
+    [t_blob, t_msg].map(&:delete)
+    res
+  end
+
   def save!(data, msg)
     msg = "web commit: #{self}" if msg.to_s.empty?
-    Dir.chdir(GitWiki.git_dir) do
-      path = @name
 
-      File.open(path, 'w') {|f| f.puts(data.gsub("\r\n", "\n")) }
+    stage_tempfile_commit(data, msg) do |t_blob, t_msg|
+      path = @name
 
       head = `cat refs/heads/master`.chomp
       tree = `git cat-file -p #{head} |head -c 45|cut -d' ' -f2`.chomp
-      blob = `git hash-object -w #{path}`.chomp
+      blob = `git hash-object -w #{t_blob.path}`.chomp
 
       `git read-tree #{head}`
       `git update-index --add --cacheinfo 100644 #{blob} #{path}`
       tree = `git write-tree`.chomp
 
       pcommit = "-p #{head}"
-      commit_sha = `echo "update #{@name}" | git commit-tree #{tree} #{pcommit}`.chomp
+      git_env = ''
+      commit_sha = `#{git_env} git commit-tree #{tree} #{pcommit} < #{t_msg.path}`.chomp
       `git update-ref refs/heads/master #{commit_sha}`
+
+      commit_sha
     end
+  end
+
+  def git_env_base
+    git_env  = 'GIT_AUTHOR_NAME=rb GIT_AUTHOR_EMAIL=meta.rb@gmail.com '
+    git_env += 'GIT_COMMITTER_NAME=rb GIT_COMMITTER_EMAIL=meta.rb@gmail.com '
   end
 end
 
@@ -163,6 +233,10 @@ module GitWiki
 
         @app.call(env)
       end
+    rescue => ex
+      puts "\n\nGitWiki Exception-Rescue:\n"
+      print "#{ex.inspect}\n\n" + ex.backtrace.join("\n") + "\n\n"
+      [404,{},[]]
     end
 
     def page_edit(env, page)
@@ -171,7 +245,7 @@ module GitWiki
         render_html 'edit.erb'
 
       when 'POST'
-        params = parse_post_params(env)
+        params = request_params(env)
         if params['content']
           @page.save!(params['content'], params['msg'])
           [303, {'Location'=>@page.url}, []]
@@ -180,14 +254,16 @@ module GitWiki
       end || [404, {}, ['not found']]
     end
 
-    def parse_post_params(env)
-      Hash[ *env['rack.input'].read.split("&").map{|i|
-        k, v = *i.split("=", 2); v == '' ? [k,nil] : [k, CGI.unescape(v)]
-      }.flatten ]
+    def request_params(env)
+      params = Rack::Request.new(env).params
+      params.each{|k,v|
+        v.encoding.to_s == 'ASCII-8BIT' && \
+          params[k] = v.force_encoding('UTF-8')
+      }; params
     end
 
     def render_html(template_name)
-      [200, {'Content-Type'=>'text/html'}, render_layout(template_name)]
+      [200, {'Content-Type'=>'text/html; charset=utf-8'}, render_layout(template_name)]
     end
 
     def render_view(template_path)
