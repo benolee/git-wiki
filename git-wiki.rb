@@ -3,7 +3,10 @@ require 'rack'
 require 'grit'
 require 'rdiscount'
 require 'cgi'
-require 'lib/tilt'
+
+begin; require 'lib/tilt'; rescue => ex
+  require File.join(File.dirname(__FILE__), 'lib/tilt.rb')
+end
 
 Encoding.default_internal = 'UTF-8'
 Encoding.default_external = 'UTF-8'
@@ -56,7 +59,7 @@ if not File.directory?(git_dir)
     puts "  > DONE. new git-wiki 'database' is ready."
     puts "  > git_dir='#{File.expand_path git_dir}'"
     #puts "  >       the wiki's HEAD is at #{File.read(git_dir + '/refs/heads/master')}\n\n"
-    print "\n\n" + `git #{dir} log --stat`.chomp
+    puts "\n\n" + `git #{dir} log --stat`.chomp
   end
 end
 
@@ -72,6 +75,7 @@ GitWiki.link_pattern = /\[\[(.*?)\]\]/
 GitWiki.wiki_name = File.basename GitWiki.git_dir
 GitWiki.wiki_name == '.git' && \
   GitWiki.wiki_name = File.basename(File.dirname(GitWiki.git_dir))
+GitWiki.wiki_name = GitWiki.wiki_name.sub(/\.git$/,'')
 
 
 class Page
@@ -280,8 +284,8 @@ end
 # config.ru
 app = Rack::Builder.new{
   use Rack::CommonLogger
-  use Rack::Static, :urls => ['/css'], :root => 'public'
+  use Rack::Static, :urls => ['/css', '/img', '/tmp'], :root => 'public'
   use GitWiki::App
   run lambda{|env| [404, {}, ['not found']] }
-}
+}.to_app
 Rack::Handler::Thin.run(app, :Port => GitWiki.net_port)
