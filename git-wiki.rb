@@ -1,11 +1,10 @@
 #!/usr/bin/ruby
 require 'rack'
-require 'grit'
 require 'rdiscount'
 require 'cgi'
 
-begin; require 'lib/tilt'; rescue => ex
-  require File.join(File.dirname(__FILE__), 'lib/tilt.rb')
+begin; require 'lib/tilt'; rescue LoadError
+  require File.join(File.expand_path(File.dirname(__FILE__)), 'lib/tilt.rb')
 end
 
 Encoding.default_internal = 'UTF-8'
