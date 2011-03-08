@@ -77,6 +77,15 @@ GitWiki.wiki_name == '.git' && \
 GitWiki.wiki_name = GitWiki.wiki_name.sub(/\.git$/,'')
 
 
+def branch_hash(name)
+  ref = 'refs/heads/%s' % [name]
+  if File.exists?(ref)
+    File.read(ref).chomp
+  else
+    File.read('packed-refs').match(/(.+) refs\/heads\/master$/); $1
+  end
+end
+
 class Page
   def self.find_all
     Dir.chdir(GitWiki.git_dir) do
@@ -91,7 +100,7 @@ class Page
   def self.find_or_create(name, rev=nil)
     filename = name + GitWiki.extension
     Dir.chdir(GitWiki.git_dir) do
-      rev = rev || `cat refs/heads/master`.chomp
+      rev = rev || branch_hash('master')
       tree = `git cat-file -p $(git cat-file -p '#{rev.tr("'",'"')}' |head -c 45|cut -d' ' -f2)`.split("\n").map{|i|i.split(' ')}
 
       if blob = tree.select{|i| i.last == filename }.first
@@ -129,7 +138,7 @@ class Page
   def log
     Dir.chdir(GitWiki.git_dir) do
       filename = @name
-      head = `cat refs/heads/master`.chomp
+      head = branch_hash('master')
 
       `git log --stat #{head} -- #{filename}`
         .scan(/commit (.+)\nAuthor: (.+)\nDate: (.+)\n\n(.+)\n\n(.+)\n(.+)\n\n/)
@@ -162,7 +171,7 @@ class Page
     stage_tempfile_commit(data, msg) do |t_blob, t_msg|
       path = @name
 
-      head = `cat refs/heads/master`.chomp
+      head = branch_hash('master')
       tree = `git cat-file -p #{head} |head -c 45|cut -d' ' -f2`.chomp
       blob = `git hash-object -w #{t_blob.path}`.chomp
 
